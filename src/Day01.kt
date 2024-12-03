@@ -1,10 +1,11 @@
 import kotlin.math.abs
+import kotlin.math.absoluteValue
 
 fun main() {
     val input = readInput("Day01")
     val (leftColumn, rightColumn) = input.splitToLeftAndRightColumns()
-    println("part 1 result = ${part1(leftColumn, rightColumn)}")
-    println("part 2 result = ${part2(leftColumn, rightColumn)}")
+    println("[part 1] ID distance sum = ${part1(leftColumn, rightColumn)}")
+    println("[part 2] total similarity score = ${part2(leftColumn, rightColumn)}")
 }
 
 private fun part1(leftColumn: List<Int>, rightColumn: List<Int>): Int {
@@ -28,5 +29,5 @@ private fun List<String>.splitToLeftAndRightColumns(): Pair<List<Int>, List<Int>
 }
 
 private data class LocationIdPair(val id1: Int, val id2: Int) {
-    val distance: Int = abs(id2 - id1)
+    val distance: Int = (id2 - id1).absoluteValue
 }
