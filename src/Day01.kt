@@ -7,23 +7,31 @@ fun main() {
 }
 
 private fun part1(input: List<String>): Int {
-    val leftList = mutableListOf(input.size)
-    val rightList = mutableListOf(input.size)
-    input.forEach { line ->
-        leftList.add(line.substringBefore(" ").toInt())
-        rightList.add(line.substringAfterLast(" ").toInt())
-    }
-
+    val (leftList, rightList) = input.splitToLeftAndRightList()
     val sortedLeftList = leftList.sorted()
     val sortedRightList = rightList.sorted()
-    val idPairs = (0..input.size).map { LocationIdPair(sortedLeftList[it], sortedRightList[it]) }
+    val idPairs = input.indices.map { LocationIdPair(sortedLeftList[it], sortedRightList[it]) }
     return idPairs.sumOf { it.distance }
 }
 
 private fun part2(input: List<String>): Int {
-    return input.size // WIP implement
+    val (leftList, rightList) = input.splitToLeftAndRightList()
+    val totalSimilarityScore = leftList.sumOf { leftValue ->
+        leftValue * rightList.count { it == leftValue }
+    }
+    return totalSimilarityScore
 }
 
-data class LocationIdPair(val id1: Int, val id2: Int) {
+private fun List<String>.splitToLeftAndRightList(): Pair<List<Int>, List<Int>> {
+    val leftList = mutableListOf<Int>()
+    val rightList = mutableListOf<Int>()
+    this.forEach { line ->
+        leftList.add(line.substringBefore(" ").toInt())
+        rightList.add(line.substringAfterLast(" ").toInt())
+    }
+    return Pair(leftList, rightList)
+}
+
+private data class LocationIdPair(val id1: Int, val id2: Int) {
     val distance: Int = abs(id2 - id1)
 }
