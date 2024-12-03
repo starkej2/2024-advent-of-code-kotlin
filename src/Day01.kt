@@ -1,21 +1,29 @@
+import kotlin.math.abs
+
 fun main() {
-    fun part1(input: List<String>): Int {
-        return input.size
-    }
-
-    fun part2(input: List<String>): Int {
-        return input.size
-    }
-
-    // Test if implementation meets criteria from the description, like:
-    check(part1(listOf("test_input")) == 1)
-
-    // Or read a large test input from the `src/Day01_test.txt` file:
-    val testInput = readInput("Day01_test")
-    check(part1(testInput) == 1)
-
-    // Read the input from the `src/Day01.txt` file.
     val input = readInput("Day01")
-    part1(input).println()
-    part2(input).println()
+    println("part 1 result = ${part1(input)}")
+    println("part 2 result = ${part2(input)}")
+}
+
+private fun part1(input: List<String>): Int {
+    val leftList = mutableListOf(input.size)
+    val rightList = mutableListOf(input.size)
+    input.forEach { line ->
+        leftList.add(line.substringBefore(" ").toInt())
+        rightList.add(line.substringAfterLast(" ").toInt())
+    }
+
+    val sortedLeftList = leftList.sorted()
+    val sortedRightList = rightList.sorted()
+    val idPairs = (0..input.size).map { LocationIdPair(sortedLeftList[it], sortedRightList[it]) }
+    return idPairs.sumOf { it.distance }
+}
+
+private fun part2(input: List<String>): Int {
+    return input.size // WIP implement
+}
+
+data class LocationIdPair(val id1: Int, val id2: Int) {
+    val distance: Int = abs(id2 - id1)
 }
