@@ -11,66 +11,47 @@ fun main() {
 }
 
 private fun part1(reports: List<Report>): String {
-    return "Safe reports count = ${reports.count { it.isSafe(enableProblemDampener = false) }}"
+    return "Safe reports count = ${reports.count { it.isSafe(numErrorsAllowed = 0) }}"
 }
 
 private fun part2(reports: List<Report>): String {
-    return "Safe reports count = ${reports.count { it.isSafe(enableProblemDampener = true) }}"
+    return "Safe reports count = ${reports.count { it.isSafe(numErrorsAllowed = 1) }}"
 }
 
 private data class Report(val levels: List<Int>) {
 
-    fun isSafe(enableProblemDampener: Boolean): Boolean {
-        if (countErrors(levels) == 0) {
-            return true
-        }
-
-        // Try removing each level and check
-        if (enableProblemDampener) {
-            for (i in levels.indices) {
-                val modifiedLevels = levels.toMutableList().apply { removeAt(i) }
-                if (countErrors(modifiedLevels) == 0) {
-                    return true
-                }
-            }
-        }
-
-        return false
+    fun isSafe(numErrorsAllowed: Int): Boolean {
+        return isSafe(levels, numErrorsAllowed) ||
+                isSafe(levels.asReversed(), numErrorsAllowed)
     }
 
     companion object {
-        private const val MIN_SAFE_LEVEL_STEP_SIZE = 1
-        private const val MAX_SAFE_LEVEL_STEP_SIZE = 3
+        private fun isSafe(levels: List<Int>, numErrorsAllowed: Int): Boolean {
+            check(levels.size >= 2) { "Report must have at least 2 levels" }
 
-        private fun countErrors(levels: List<Int>): Int {
+            var leftIndex = 0
+            var rightIndex = 1
             var errorCount = 0
-            var previousDirection: StepDirection? = null
+            val isFirstStepIncreasing = LevelStep(levels[0], levels[1]).isIncreasing
 
-            for (i in 0..<levels.size - 1) {
-                val a = levels[i]
-                val b = levels[i + 1]
-                val stepSize = b - a
-
-                val nextDirection: StepDirection? = when {
-                    stepSize > 0 -> StepDirection.INCREASING
-                    stepSize < 0 -> StepDirection.DECREASING
-                    else -> previousDirection
+            while (rightIndex <= levels.lastIndex) {
+                val nextStep = LevelStep(startingLevel = levels[leftIndex], nextLevel = levels[rightIndex])
+                if (nextStep.isIncreasing == isFirstStepIncreasing && nextStep.isValidSize) {
+                    leftIndex = rightIndex
+                    rightIndex++
+                } else if (errorCount++ < numErrorsAllowed) {
+                    rightIndex++
+                } else {
+                    return false
                 }
-
-                val isValidStepSize = stepSize.absoluteValue in MIN_SAFE_LEVEL_STEP_SIZE..MAX_SAFE_LEVEL_STEP_SIZE
-                val isValidDirection = previousDirection == null || (nextDirection == previousDirection)
-                if (!isValidStepSize || !isValidDirection) {
-                    errorCount++
-                }
-
-                previousDirection = nextDirection
             }
-            return errorCount
+            return true
         }
 
-        private enum class StepDirection {
-            INCREASING,
-            DECREASING,
+        private data class LevelStep(val startingLevel: Int, val nextLevel: Int) {
+            private val size: Int = nextLevel - startingLevel
+            val isValidSize: Boolean = size.absoluteValue in 1..3
+            val isIncreasing: Boolean = size > 0
         }
     }
 }
