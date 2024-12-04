@@ -1,7 +1,6 @@
 import kotlin.math.abs
 
 fun main() {
-//    val input = readInput("Test")
     val input = readInput("Day02")
     val reports = input.map { Report.parseLine(it) }
 
@@ -18,26 +17,38 @@ private fun part2(reports: List<Report>): String {
 }
 
 private data class Report(val levels: List<Int>) {
-
     val isSafe: Boolean
         get() {
-            val stepSizes = levels
-                .windowed(2)
-                .map { (a, b) -> b - a }
+            var currentDirection: StepDirection? = null
 
-            val containsInvalidStepSize = stepSizes
-                .map { abs(it) }
-                .any { it < MIN_SAFE_LEVEL_STEP_SIZE || it > MAX_SAFE_LEVEL_STEP_SIZE }
-            if (containsInvalidStepSize) {
-                return false
-            }
+            for (i in 0..<levels.size - 1) {
+                val a = levels[i]
+                val b = levels[i + 1]
+                val stepSize = b - a
 
-            // check if steps are in the same direction
-            stepSizes.windowed(2).forEach { (a, b) ->
-                if ((a > 0 && b < 0) || a < 0 && b > 0) {
+                val nextDirection: StepDirection = when (stepSize) {
+                    in MIN_SAFE_LEVEL_STEP_SIZE..MAX_SAFE_LEVEL_STEP_SIZE -> {
+                        StepDirection.INCREASING
+                    }
+
+                    in -MAX_SAFE_LEVEL_STEP_SIZE..-MIN_SAFE_LEVEL_STEP_SIZE -> {
+                        StepDirection.DECREASING
+                    }
+
+                    else -> {
+                        // step size is out of range
+                        return false
+                    }
+                }
+
+                if (currentDirection == null) {
+                    currentDirection = nextDirection
+                } else if (currentDirection != nextDirection) {
+                    // direction changes are not allowed
                     return false
                 }
             }
+
             return true
         }
 
@@ -48,5 +59,10 @@ private data class Report(val levels: List<Int>) {
         fun parseLine(line: String): Report = Report(
             levels = line.split(" ").map { it.toInt() }
         )
+    }
+
+    private enum class StepDirection {
+        INCREASING,
+        DECREASING,
     }
 }
