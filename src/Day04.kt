@@ -1,4 +1,5 @@
 fun main() {
+//    val grid = readInput("Day04_test").map { lines -> lines.toCharArray() }
     val grid = readInput("Day04").map { lines -> lines.toCharArray() }
     println("[part 1] result = ${part1(grid)}")
     println("[part 2] result = ${part2(grid)}")

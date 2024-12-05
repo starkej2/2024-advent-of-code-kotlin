@@ -1,6 +1,7 @@
 import kotlin.math.absoluteValue
 
 fun main() {
+//    val input = readInput("Day02_test")
     val input = readInput("Day02")
     val reports = input.map { line ->
         Report(levels = line.split(" ").map { it.toInt() })

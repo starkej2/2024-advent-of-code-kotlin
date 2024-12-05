@@ -1,7 +1,7 @@
-import kotlin.math.abs
 import kotlin.math.absoluteValue
 
 fun main() {
+//    val input = readInput("Day01_test")
     val input = readInput("Day01")
     val (leftColumn, rightColumn) = input.splitToLeftAndRightColumns()
     println("[part 1] ID distance sum = ${part1(leftColumn, rightColumn)}")

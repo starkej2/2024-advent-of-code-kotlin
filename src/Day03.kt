@@ -1,4 +1,5 @@
 fun main() {
+//    val input = readInputAsString("Day03_test")
     val input = readInputAsString("Day03")
     println("[part 1] result = ${part1(input)}")
     println("[part 2] result = ${part2(input)}")
