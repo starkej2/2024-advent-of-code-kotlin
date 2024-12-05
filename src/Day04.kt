@@ -9,10 +9,10 @@ private fun part1(grid: List<CharArray>): Int {
 }
 
 private fun part2(grid: List<CharArray>): Int {
-    return grid.countXShapedOccurrencesOf("MAS")
+    return grid.countCrossShapedOccurrencesOf("MAS")
 }
 
-private fun List<CharArray>.countXShapedOccurrencesOf(
+private fun List<CharArray>.countCrossShapedOccurrencesOf(
     word: String,
 ): Int {
     if (word.length.isEven) {
@@ -20,31 +20,31 @@ private fun List<CharArray>.countXShapedOccurrencesOf(
     }
 
     val middleLetter = word[word.length / 2]
-    var xShapedWordCount = 0
+    var crossShapedWordCount = 0
 
     this.forEachIndexed { rowIndex, row ->
         row.forEachIndexed { columnIndex, letter ->
             if (letter == middleLetter) {
-                val diagonalDirections = setOf(
-                    CrawlDirection.UP_RIGHT,
-                    CrawlDirection.DOWN_RIGHT,
-                    CrawlDirection.DOWN_LEFT,
-                    CrawlDirection.UP_LEFT
+                val intercardinalDirections = setOf(
+                    CrawlDirection.NORTHEAST,
+                    CrawlDirection.SOUTHEAST,
+                    CrawlDirection.SOUTHWEST,
+                    CrawlDirection.NORTHWEST
                 )
 
                 val middleLetterPosition = GridPosition(rowIndex, columnIndex)
-                val partialXCount = diagonalDirections.count { direction ->
+                val partialCrossCount = intercardinalDirections.count { direction ->
                     val wordStartPosition = direction.calculatePosition(middleLetterPosition, -1)
                     this.wordExists(word, wordStartPosition, direction)
                 }
 
-                if (partialXCount == 2) {
-                    xShapedWordCount++
+                if (partialCrossCount == 2) {
+                    crossShapedWordCount++
                 }
             }
         }
     }
-    return xShapedWordCount
+    return crossShapedWordCount
 }
 
 private fun List<CharArray>.countOccurrencesOf(
@@ -52,13 +52,11 @@ private fun List<CharArray>.countOccurrencesOf(
 ): Int {
     var count = 0
     this.forEachIndexed { rowIndex, row ->
-        row.forEachIndexed { columnIndex, letter ->
+        row.forEachIndexed { columnIndex, _ ->
             val currentPosition = GridPosition(rowIndex, columnIndex)
-            if (letter == word.first()) {
-                CrawlDirection.entries.forEach { direction ->
-                    if (this.wordExists(word, currentPosition, direction)) {
-                        count++
-                    }
+            CrawlDirection.entries.forEach { direction ->
+                if (this.wordExists(word, currentPosition, direction)) {
+                    count++
                 }
             }
         }
@@ -90,14 +88,14 @@ private fun List<CharArray>.wordExists(
 }
 
 private enum class CrawlDirection(private val rowDelta: Int, private val columnDelta: Int) {
-    UP(rowDelta = -1, columnDelta = 0),
-    UP_RIGHT(rowDelta = -1, columnDelta = 1),
-    RIGHT(rowDelta = 0, columnDelta = 1),
-    DOWN_RIGHT(rowDelta = 1, columnDelta = 1),
-    DOWN(rowDelta = 1, columnDelta = 0),
-    DOWN_LEFT(rowDelta = 1, columnDelta = -1),
-    LEFT(rowDelta = 0, columnDelta = -1),
-    UP_LEFT(rowDelta = -1, columnDelta = -1),
+    NORTH(rowDelta = -1, columnDelta = 0),
+    NORTHEAST(rowDelta = -1, columnDelta = 1),
+    EAST(rowDelta = 0, columnDelta = 1),
+    SOUTHEAST(rowDelta = 1, columnDelta = 1),
+    SOUTH(rowDelta = 1, columnDelta = 0),
+    SOUTHWEST(rowDelta = 1, columnDelta = -1),
+    WEST(rowDelta = 0, columnDelta = -1),
+    NORTHWEST(rowDelta = -1, columnDelta = -1),
     ;
 
     fun calculatePosition(startPosition: GridPosition, stepSize: Int): GridPosition {
