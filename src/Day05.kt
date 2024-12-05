@@ -9,16 +9,21 @@ fun main() {
 }
 
 private fun part1(input: String): Int {
-    val pageToOrderingRules = loadPageOrderingRules(input)
+    val rulesByPage = loadPageOrderingRules(input)
     val pageUpdates = loadPageUpdates(input)
 
     return pageUpdates
-        .filter { update -> update.isValid(pageToOrderingRules) }
+        .filter { update -> update.isValid(rulesByPage) }
         .sumOf { it.middlePage }
 }
 
 private fun part2(input: String): Int {
-    return -1
+    val rulesByPage = loadPageOrderingRules(input)
+    val pageUpdates = loadPageUpdates(input)
+    return pageUpdates
+        .filterNot { update -> update.isValid(rulesByPage) }
+        .map { invalidUpdate -> invalidUpdate.fix(rulesByPage) }
+        .sumOf { it.middlePage }
 }
 
 private fun loadPageOrderingRules(input: String): Map<PageNumber, PageOrderingRule> {
@@ -47,6 +52,22 @@ private fun loadPageUpdates(input: String): List<PageUpdate> {
         }
 }
 
+private fun PageUpdate.fix(
+    rulesByPage: Map<PageNumber, PageOrderingRule>,
+): PageUpdate {
+    val comparator = Comparator<PageNumber> { page1, page2 ->
+        val page1GoesBefore2 = rulesByPage[page1]?.subsequentPages?.contains(page2) ?: false
+        val page2GoesBefore1 = rulesByPage[page2]?.subsequentPages?.contains(page1) ?: false
+
+        when {
+            page1GoesBefore2 -> -1
+            page2GoesBefore1 -> 1
+            else -> 0
+        }
+    }
+    return this.copy(affectedPages = affectedPages.sortedWith(comparator))
+}
+
 private data class PageOrderingRule(
     val page: PageNumber,
     val subsequentPages: Set<PageNumber>,
@@ -57,9 +78,9 @@ private data class PageUpdate(
 ) {
     val middlePage = affectedPages[affectedPages.size / 2]
 
-    fun isValid(rules: Map<PageNumber, PageOrderingRule>): Boolean {
+    fun isValid(rulesByPage: Map<PageNumber, PageOrderingRule>): Boolean {
         affectedPages.forEachIndexed { index, page ->
-            rules[page]?.let { pageRule ->
+            rulesByPage[page]?.let { pageRule ->
                 val priorPages = affectedPages.take(index)
                 if (priorPages.any { it in pageRule.subsequentPages }) {
                     return false
