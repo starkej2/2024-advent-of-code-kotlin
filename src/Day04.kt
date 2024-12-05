@@ -1,12 +1,50 @@
 fun main() {
-//    val input = readInput("Day04")
-    val grid = readInput("Test").map { lines -> lines.toCharArray() }
+    val grid = readInput("Day04").map { lines -> lines.toCharArray() }
     println("[part 1] result = ${part1(grid)}")
     println("[part 2] result = ${part2(grid)}")
 }
 
 private fun part1(grid: List<CharArray>): Int {
     return grid.countOccurrencesOf("XMAS")
+}
+
+private fun part2(grid: List<CharArray>): Int {
+    return grid.countXShapedOccurrencesOf("MAS")
+}
+
+private fun List<CharArray>.countXShapedOccurrencesOf(
+    word: String,
+): Int {
+    if (word.length.isEven) {
+        throw IllegalArgumentException("Word length must be odd")
+    }
+
+    val middleLetter = word[word.length / 2]
+    var xShapedWordCount = 0
+
+    this.forEachIndexed { rowIndex, row ->
+        row.forEachIndexed { columnIndex, letter ->
+            if (letter == middleLetter) {
+                val diagonalDirections = setOf(
+                    CrawlDirection.UP_RIGHT,
+                    CrawlDirection.DOWN_RIGHT,
+                    CrawlDirection.DOWN_LEFT,
+                    CrawlDirection.UP_LEFT
+                )
+
+                val middleLetterPosition = GridPosition(rowIndex, columnIndex)
+                val partialXCount = diagonalDirections.count { direction ->
+                    val wordStartPosition = direction.calculatePosition(middleLetterPosition, -1)
+                    this.wordExists(word, wordStartPosition, direction)
+                }
+
+                if (partialXCount == 2) {
+                    xShapedWordCount++
+                }
+            }
+        }
+    }
+    return xShapedWordCount
 }
 
 private fun List<CharArray>.countOccurrencesOf(
@@ -45,19 +83,13 @@ private fun List<CharArray>.wordExists(
 
         val currentLetter = this[nextRowIndex][nextColumnIndex]
         if (currentLetter != word[i]) {
-//            println("no match: $currentLetter at (${nextRowIndex},${nextColumnIndex})")
             return false
-        } else {
-//            println("MATCH: $currentLetter at (${nextRowIndex},${nextColumnIndex})")
         }
     }
-
-    // WIP clean up logs
-//    println("found match! in direction $crawlDirection from $startPosition")
     return true
 }
 
-enum class CrawlDirection(private val rowDelta: Int, private val columnDelta: Int) {
+private enum class CrawlDirection(private val rowDelta: Int, private val columnDelta: Int) {
     UP(rowDelta = -1, columnDelta = 0),
     UP_RIGHT(rowDelta = -1, columnDelta = 1),
     RIGHT(rowDelta = 0, columnDelta = 1),
@@ -76,19 +108,7 @@ enum class CrawlDirection(private val rowDelta: Int, private val columnDelta: In
     }
 }
 
-private fun part2(grid: List<CharArray>): Int {
-//    printMatrixWithCoordinates(grid) // WIP clean up
-    return -1
-}
+private data class GridPosition(val row: Int, val column: Int)
 
-
-data class GridPosition(val row: Int, val column: Int)
-
-private fun printMatrixWithCoordinates(grid: List<CharArray>) {
-    grid.forEachIndexed { rowIndex, row ->
-        row.forEachIndexed { columnIndex, letter ->
-            print("$rowIndex,$columnIndex:$letter  ")
-        }
-        print("\n")
-    }
-}
+private val Int.isEven: Boolean
+    get() = this % 2 == 0
