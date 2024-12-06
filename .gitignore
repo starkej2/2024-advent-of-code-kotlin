@@ -4,3 +4,5 @@
 build
 src/**/*.txt
 local.properties
+src/.aocToken
+/src/.aocCache/
