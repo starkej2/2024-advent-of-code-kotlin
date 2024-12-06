@@ -1,3 +1,5 @@
+import common.readInput
+
 fun main() {
 //    val grid = readInput("Day04_test").map { lines -> lines.toCharArray() }
     val grid = readInput("Day04").map { lines -> lines.toCharArray() }

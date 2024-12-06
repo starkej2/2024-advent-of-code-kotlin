@@ -1,3 +1,4 @@
+import common.readInput
 import kotlin.math.absoluteValue
 
 fun main() {

@@ -1,3 +1,6 @@
+import common.Grid
+import common.readInput
+
 fun main() {
     val testInput = readInput("Day06_test")
     val realInput = readInput("Day06")
@@ -12,7 +15,7 @@ fun main() {
 private fun part1(input: List<String>): Int {
     val grid = Grid(input.map { it.toCharArray() })
     val guardCoord = grid.indexOfFirst('<', 'v', '^', '>')
-    println("guard coord = $guardCoord --- orientation = ${guardCoord?.let { grid.getAt(it) }}")
+    println("guard coord = $guardCoord --- orientation = ${guardCoord?.let { grid.valueAt(it) }}")
     return -1
 }
 

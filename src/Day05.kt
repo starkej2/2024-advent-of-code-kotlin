@@ -1,3 +1,5 @@
+import common.readInputAsString
+
 fun main() {
     val testInput = readInputAsString("Day05_test")
     val realInput = readInputAsString("Day05")
