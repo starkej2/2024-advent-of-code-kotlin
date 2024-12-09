@@ -1,44 +1,90 @@
+import GuardPosition.Direction
 import common.Coordinate
 import common.Grid
 import common.readInput
-
-private const val enableVerboseLogs = false
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.atomic.AtomicInteger
 
 fun main() {
     val testInput = readInput("Day06_test")
     val realInput = readInput("Day06")
 
     println("[part 1] TEST result = ${part1(testInput)}")
-//    println("[part 2] TEST result = ${part2(testInput)}\n")
+    println("[part 2] TEST result = ${part2(testInput)}\n")
 
     println("[part 1] result = ${part1(realInput)}")
-//    println("[part 2] result = ${part2(realInput)}")
+    println("[part 2] result = ${part2(realInput)}")
 }
 
 private fun part1(inputLines: List<String>): Int {
-    var map = LabMap(inputLines)
-    if (enableVerboseLogs) {
-        println("\ninitial map state:")
-        map.print()
-    }
-
-    val distinctPositionsVisited = buildSet {
-        do {
-            val nextMove = map.getNextGuardMove()
-            map = map.nextState(nextMove)
-            if (enableVerboseLogs) {
-                println("next state:")
-                map.print()
-            }
-            add(nextMove.oldPosition)
-        } while (nextMove !is GuardMove.ExitMap)
-    }
-
-    return distinctPositionsVisited.size
+    return getPositionsVisitedByGuard(LabMap(inputLines)).distinctBy { it.coordinate }.size
 }
 
-private fun part2(input: List<String>): Int {
-    return -1
+private fun part2(inputLines: List<String>): Int {
+    val originalMap = LabMap(inputLines)
+    val originalPath = getPositionsVisitedByGuard(originalMap)
+    val loopCounter = AtomicInteger(0)
+
+    runBlocking(Dispatchers.Default) {
+        loop@ for (coordinate in originalPath.map { it.coordinate }.distinct()) {
+            launch {
+                try {
+                    val loopTestMap = originalMap.copy(newObstacleLocation = coordinate)
+                    val visited = mutableSetOf<GuardPosition>()
+                    runGuard(
+                        initialMap = loopTestMap,
+                        onNewPositionVisited = { newPosition ->
+                            if (newPosition in visited) {
+                                loopCounter.andIncrement
+                                throw Exception("loop detected")
+                            }
+                            visited.add(newPosition)
+                        },
+                    )
+                } catch (e: Exception) {
+                    // hack to exit loop
+                    // println("loop detected at $coordinate")
+                }
+            }
+        }
+    }
+
+    return loopCounter.get()
+}
+
+private fun runGuard(
+    initialMap: LabMap,
+    onNewPositionVisited: (GuardPosition) -> Unit,
+) {
+    var map = initialMap
+    if (initialMap.guardPosition == null) {
+        // println("\nno guard found in this map:")
+        // initialMap.print()
+        return
+    }
+    onNewPositionVisited(initialMap.guardPosition)
+
+    do {
+        val nextMove = map.getNextGuardMove()
+        map = map.nextState(nextMove)
+
+        if (nextMove !is GuardMove.ExitMap) {
+            onNewPositionVisited(nextMove.newPosition)
+        }
+    } while (nextMove !is GuardMove.ExitMap)
+}
+
+private fun getPositionsVisitedByGuard(
+    initialMap: LabMap,
+): Set<GuardPosition> {
+    return buildSet {
+        runGuard(
+            initialMap = initialMap,
+            onNewPositionVisited = { position -> add(position) },
+        )
+    }
 }
 
 private data class LabMap(
@@ -51,10 +97,10 @@ private data class LabMap(
     fun print() = grid.print()
 
     private fun findGuardPosition(): GuardPosition? {
-        return grid.indexOfFirst(GuardPosition.Orientation.symbols)?.let { position ->
+        return grid.indexOfFirst(Direction.symbols)?.let { position ->
             GuardPosition(
                 coordinate = position,
-                orientation = GuardPosition.Orientation.fromSymbol(grid.valueAt(position))
+                direction = Direction.fromSymbol(grid.valueAt(position))
             )
         }
     }
@@ -64,25 +110,39 @@ private data class LabMap(
             error("Unable to determine next guard position: guard not found")
         }
 
-        val oldPosition = guardPosition.coordinate
-        val newPosition = when (guardPosition.orientation) {
-            GuardPosition.Orientation.UP -> oldPosition.copy(y = oldPosition.y - 1)
-            GuardPosition.Orientation.DOWN -> oldPosition.copy(y = oldPosition.y + 1)
-            GuardPosition.Orientation.LEFT -> oldPosition.copy(x = oldPosition.x - 1)
-            GuardPosition.Orientation.RIGHT -> oldPosition.copy(x = oldPosition.x + 1)
-        }
+        val oldPosition = guardPosition
+        val newCoordinate = Coordinate(
+            x = oldPosition.coordinate.x + guardPosition.direction.xDelta,
+            y = oldPosition.coordinate.y + guardPosition.direction.yDelta
+        )
 
         return when {
-            newPosition.x !in 0 until grid.width || newPosition.y !in 0 until grid.height -> {
-                GuardMove.ExitMap(oldPosition, newPosition)
+            newCoordinate.x !in 0 until grid.width || newCoordinate.y !in 0 until grid.height -> {
+                GuardMove.ExitMap(
+                    oldPosition = oldPosition,
+                    newPosition = oldPosition.copy(coordinate = newCoordinate),
+                )
             }
 
-            grid.valueAt(newPosition) == '#' -> {
-                GuardMove.TurnRight(oldPosition, newPosition)
+            grid.valueAt(newCoordinate) == '#' -> {
+                val newDirection = when (guardPosition.direction) {
+                    Direction.UP -> Direction.RIGHT
+                    Direction.DOWN -> Direction.LEFT
+                    Direction.LEFT -> Direction.UP
+                    Direction.RIGHT -> Direction.DOWN
+                }
+
+                GuardMove.TurnRight(
+                    oldPosition = oldPosition,
+                    newPosition = GuardPosition(coordinate = oldPosition.coordinate, direction = newDirection),
+                )
             }
 
             else -> {
-                GuardMove.GoForward(oldPosition, newPosition)
+                GuardMove.GoForward(
+                    oldPosition = oldPosition,
+                    newPosition = oldPosition.copy(coordinate = newCoordinate),
+                )
             }
         }
     }
@@ -97,19 +157,15 @@ private data class LabMap(
                 this.copy(
                     grid = grid
                         .setValueAt(guardPosition.coordinate, '.')
-                        .setValueAt(move.newPosition, guardPosition.orientation.symbol)
+                        .setValueAt(move.newPosition.coordinate, move.newPosition.direction.symbol)
                 )
             }
 
             is GuardMove.TurnRight -> {
-                val newOrientation = when (guardPosition.orientation) {
-                    GuardPosition.Orientation.UP -> GuardPosition.Orientation.RIGHT
-                    GuardPosition.Orientation.DOWN -> GuardPosition.Orientation.LEFT
-                    GuardPosition.Orientation.LEFT -> GuardPosition.Orientation.UP
-                    GuardPosition.Orientation.RIGHT -> GuardPosition.Orientation.DOWN
-                }
                 this.copy(
-                    grid = grid.setValueAt(guardPosition.coordinate, newOrientation.symbol)
+                    grid = grid
+                        .setValueAt(guardPosition.coordinate, '.')
+                        .setValueAt(move.newPosition.coordinate, move.newPosition.direction.symbol)
                 )
             }
 
@@ -120,17 +176,41 @@ private data class LabMap(
             }
         }
     }
+
+    fun copy(newObstacleLocation: Coordinate): LabMap = this.copy(
+        grid = grid.setValueAt(newObstacleLocation, '#')
+    )
 }
 
 private data class GuardPosition(
     val coordinate: Coordinate,
-    val orientation: Orientation,
+    val direction: Direction,
 ) {
-    enum class Orientation(val symbol: Char) {
-        UP('^'),
-        DOWN('v'),
-        LEFT('<'),
-        RIGHT('>');
+    enum class Direction(
+        val symbol: Char,
+        val xDelta: Int,
+        val yDelta: Int,
+    ) {
+        UP(
+            symbol = '^',
+            xDelta = 0,
+            yDelta = -1,
+        ),
+        DOWN(
+            symbol = 'v',
+            xDelta = 0,
+            yDelta = 1,
+        ),
+        LEFT(
+            symbol = '<',
+            xDelta = -1,
+            yDelta = 0,
+        ),
+        RIGHT(
+            symbol = '>',
+            xDelta = 1,
+            yDelta = 0,
+        );
 
         companion object {
             private val orientationBySymbol = mapOf(
@@ -141,17 +221,17 @@ private data class GuardPosition(
             )
             val symbols: Set<Char> = orientationBySymbol.keys
 
-            fun fromSymbol(symbol: Char): Orientation = orientationBySymbol[symbol]
+            fun fromSymbol(symbol: Char): Direction = orientationBySymbol[symbol]
                 ?: error("Invalid orientation symbol: $symbol")
         }
     }
 }
 
-sealed interface GuardMove {
-    val oldPosition: Coordinate
-    val newPosition: Coordinate
+private sealed interface GuardMove {
+    val oldPosition: GuardPosition
+    val newPosition: GuardPosition
 
-    data class GoForward(override val oldPosition: Coordinate, override val newPosition: Coordinate) : GuardMove
-    data class TurnRight(override val oldPosition: Coordinate, override val newPosition: Coordinate) : GuardMove
-    data class ExitMap(override val oldPosition: Coordinate, override val newPosition: Coordinate) : GuardMove
+    data class GoForward(override val oldPosition: GuardPosition, override val newPosition: GuardPosition) : GuardMove
+    data class TurnRight(override val oldPosition: GuardPosition, override val newPosition: GuardPosition) : GuardMove
+    data class ExitMap(override val oldPosition: GuardPosition, override val newPosition: GuardPosition) : GuardMove
 }

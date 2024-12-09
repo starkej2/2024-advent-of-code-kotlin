@@ -43,3 +43,4 @@ data class Grid(private val elements: List<CharArray>) {
 data class Coordinate(val x: Int, val y: Int) {
     override fun toString(): String = "($x,$y)"
 }
+

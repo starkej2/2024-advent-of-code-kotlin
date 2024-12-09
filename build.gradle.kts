@@ -13,3 +13,12 @@ tasks {
         gradleVersion = "8.11.1"
     }
 }
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xnon-local-break-continue")
+    }
+}
+dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+}
