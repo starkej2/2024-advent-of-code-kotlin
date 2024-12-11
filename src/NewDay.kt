@@ -11,10 +11,10 @@ fun main() {
     println("[part 2] result = ${part2(realInput)}")
 }
 
-private fun part1(input: List<String>): Int {
+private fun part1(inputLines: List<String>): Int {
     return -1
 }
 
-private fun part2(input: List<String>): Int {
+private fun part2(inputLines: List<String>): Int {
     return -1
 }
